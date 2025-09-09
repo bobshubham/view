@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Share Popup</title>
+  <style>
+    :root{
+      --popup-bg: #fff;
+      --popup-shadow: 0 8px 24px rgba(0,0,0,.12);
+      --icon-size: 28px;
+      --gap: 10px;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      background: #f6f6f6;
+    }
+
+    /* wrapper positions popup relative to the button */
+    .share-wrap {
+      position: relative;
+      display: inline-block;
+    }
+
+    .share-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .share-btn img { width: var(--icon-size); height: var(--icon-size); display:block; }
+
+    /* popup (hidden by default) */
+    .share-popup {
+      position: absolute;
+      top: calc(100% + 10px);           /* below the button */
+      left: 50%;
+      transform: translateX(-50%);
+      min-width: 240px;
+      display: none;                    /* hidden until open */
+      align-items: center;
+      justify-content: center;
+      gap: var(--gap);
+      padding: 12px;
+      background: var(--popup-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--popup-shadow);
+      z-index: 1000;
+      white-space: nowrap;
+    }
+
+    /* arrow */
+    .share-popup::before{
+      content: "";
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 12px;
+      height: 12px;
+      background: var(--popup-bg);
+      transform-origin: center;
+      transform: translateX(-50%) rotate(45deg);
+      box-shadow: var(--popup-shadow);
+      z-index: -1;
+    }
+
+    /* show popup */
+    .share-popup.open { display: flex; }
+
+    /* share items */
+    .share-item {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      background: transparent;
+      border: none;
+      transition: transform .14s ease, background .14s ease;
+    }
+    .share-item img { width: 20px; height: 20px; display:block; }
+
+    .share-item:hover {
+      transform: translateY(-3px);
+      background: #f0f0f0;
+    }
+
+    /* small screens: allow wrapping and bigger popup width */
+    @media (max-width: 420px) {
+      .share-popup { left: 50%; min-width: 90vw; transform: translateX(-50%); padding: 12px; gap: 8px; }
+      .share-item { width: 44px; height: 44px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="share-wrap">
+    <!-- main share button (use your SVG file) -->
+    <button id="shareToggle" class="share-btn" aria-haspopup="true" aria-expanded="false" title="Share">
+      <img src="irth-share-icon.svg" alt="Share" />
+    </button>
+
+    <!-- popup: icons (use your SVG filenames) -->
+    <div id="sharePopup" class="share-popup" role="dialog" aria-label="Share options">
+      <a class="share-item" id="sharePinterest" href="#" title="Share on Pinterest" aria-label="Pinterest">
+        <img src="pinterest.svg" alt="Pinterest" />
+      </a>
+
+      <a class="share-item" id="shareFacebook" href="#" title="Share on Facebook" aria-label="Facebook">
+        <img src="facebook.svg" alt="Facebook" />
+      </a>
+
+      <a class="share-item" id="shareTwitter" href="#" title="Share on Twitter" aria-label="Twitter">
+        <img src="twitter.svg" alt="Twitter" />
+      </a>
+
+      <a class="share-item" id="shareEmail" href="#" title="Share by Email" aria-label="Email">
+        <img src="mail.svg" alt="Email" />
+      </a>
+
+      <a class="share-item" id="shareWhatsApp" href="#" title="Share on WhatsApp" aria-label="WhatsApp">
+        <img src="whatsapp-icon.svg" alt="WhatsApp" />
+      </a>
+
+      <a class="share-item" id="shareInstagram" href="#" title="Open Instagram" aria-label="Instagram">
+        <img src="instagram.svg" alt="Instagram" />
+      </a>
+
+      <button class="share-item" id="shareCopy" title="Copy link" aria-label="Copy link">
+        <img src="copy-icon.svg" alt="Copy link" />
+      </button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const toggleBtn = document.getElementById('shareToggle');
+      const popup = document.getElementById('sharePopup');
+      const copyBtn = document.getElementById('shareCopy');
+
+      // Build dynamic share values based on current page
+      const pageUrl = encodeURIComponent(window.location.href);
+      const pageTitle = encodeURIComponent(document.title || 'Check this out');
+
+      // Provider URL builders
+      const providers = {
+        pinterest: `https://www.pinterest.com/pin/create/button/?url=${pageUrl}&description=${pageTitle}`,
+        facebook: `https://www.facebook.com/sharer/sharer.php?u=${pageUrl}`,
+        twitter: `https://twitter.com/intent/tweet?url=${pageUrl}&text=${pageTitle}`,
+        email: `mailto:?subject=${pageTitle}&body=${pageUrl}`,
+        whatsapp: `https://wa.me/?text=${pageTitle}%20${pageUrl}`,
+        // Instagram doesn't support a direct "share" URL for arbitrary pages.
+        // Fallback to opening Instagram homepage/profile. You can replace with your profile URL.
+        instagram: `https://www.instagram.com/`
+      };
+
+      // Set initial hrefs (so right-click/Open in new tab works)
+      document.getElementById('sharePinterest').href = providers.pinterest;
+      document.getElementById('shareFacebook').href  = providers.facebook;
+      document.getElementById('shareTwitter').href   = providers.twitter;
+      document.getElementById('shareEmail').href     = providers.email;
+      document.getElementById('shareWhatsApp').href  = providers.whatsapp;
+      document.getElementById('shareInstagram').href = providers.instagram;
+
+      // Open popup
+      function openPopup() {
+        popup.classList.add('open');
+        toggleBtn.setAttribute('aria-expanded', 'true');
+        // focus first element inside popup for keyboard accessibility
+        const first = popup.querySelector('.share-item');
+        if (first) first.focus();
+      }
+
+      // Close popup
+      function closePopup() {
+        popup.classList.remove('open');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+        toggleBtn.focus();
+      }
+
+      // Toggle handler: try native share first (if available on the device)
+      toggleBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+
+        // If Web Share API is available, use it (mobile browsers)
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: document.title,
+              url: window.location.href
+            });
+            return;
+          } catch (err) {
+            // user cancelled or not supported - fall back to popup
+          }
+        }
+
+        if (popup.classList.contains('open')) closePopup();
+        else openPopup();
+      });
+
+      // For social links: open popup window and prevent default (for nice smaller window)
+      function openShareWindow(url, w = 640, h = 540) {
+        const left = Math.round((screen.width - w) / 2);
+        const top = Math.round((screen.height - h) / 2);
+        window.open(url, '_blank', `toolbar=0,status=0,width=${w},height=${h},left=${left},top=${top}`);
+      }
+
+      // attach click handlers so links open in small windows (except mailto which can use default)
+      document.getElementById('sharePinterest').addEventListener('click', function(e){
+        e.preventDefault(); openShareWindow(this.href, 900, 700);
+      });
+      document.getElementById('shareFacebook').addEventListener('click', function(e){
+        e.preventDefault(); openShareWindow(this.href, 900, 600);
+      });
+      document.getElementById('shareTwitter').addEventListener('click', function(e){
+        e.preventDefault(); openShareWindow(this.href, 800, 500);
+      });
+      document.getElementById('shareWhatsApp').addEventListener('click', function(e){
+        // WhatsApp web can open in a new tab; small window also OK
+        e.preventDefault(); openShareWindow(this.href, 600, 700);
+      });
+
+      // Email -> allow default behavior (opens mail client)
+      // Instagram -> open in new tab (no popup window)
+      document.getElementById('shareInstagram').addEventListener('click', function(e){
+        // allow normal tab open, but open in new tab explicitly
+        // (we set href to instagram home or your profile)
+        // No special share URL exists for Instagram pages.
+        // Let the browser open it in a new tab:
+        // (we still prevent default and open to ensure new tab)
+        e.preventDefault();
+        window.open(this.href, '_blank', 'noopener');
+      });
+
+      // Copy link
+      copyBtn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          // small unobtrusive feedback
+          const prev = this.innerHTML;
+          this.title = "Copied!";
+          this.firstElementChild && (this.firstElementChild.style.transform = 'scale(1.1)');
+          setTimeout(()=> {
+            this.title = "Copy link";
+            this.firstElementChild && (this.firstElementChild.style.transform = '');
+          }, 1400);
+        } catch (err) {
+          alert('Could not copy. Please copy the URL manually: ' + window.location.href);
+        }
+      });
+
+      // Close popup on click outside
+      document.addEventListener('click', function (evt) {
+        if (!popup.contains(evt.target) && !toggleBtn.contains(evt.target)) closePopup();
+      });
+
+      // Close on Escape
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape' && popup.classList.contains('open')) {
+          closePopup();
+        }
+      });
+
+      // Prevent clicks inside popup from closing it when handled by bubbling
+      popup.addEventListener('click', (e)=> e.stopPropagation());
+    })();
+  </script>
+</body>
+</html>
